@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SiIT Questionnaire · Status Log</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#F1F3F2; --panel:#FFFFFF; --ink:#17212A; --mute:#5C6975; --line:#DADFE3; --soft:#F6F8F8;
+  --accent:#0E5A6E; --accent-ink:#FFFFFF; --focus:#1B7F99; --warn:#B3261E;
+  --done-bg:#D9F0E3; --done-fg:#0F5C37;
+  --retest-bg:#FBE8C4; --retest-fg:#734A06;
+  --queue-bg:#D9E7F9; --queue-fg:#1B4A8C;
+  --textrep-bg:#E8DDF6; --textrep-fg:#55298C;
+  --cancel-bg:#F3D9D6; --cancel-fg:#8A2C25;
+  --tag-bg:#E6E9EC; --tag-fg:#3F4C57;
+  --none-bg:#ECEEF0; --none-fg:#6A7782;
+  --x0-bg:#D8EEF0; --x0-fg:#0F5560; --x1-bg:#F6DDE8; --x1-fg:#8A2A55;
+  --x2-bg:#E7EBCB; --x2-fg:#556012; --x3-bg:#E3E1F7; --x3-fg:#3F3A94;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#12181D; --panel:#1A2229; --ink:#E6EBEF; --mute:#9AA7B2; --line:#2B363F; --soft:#1F282F;
+    --accent:#4FB3CC; --accent-ink:#06222B; --focus:#6CC6DC; --warn:#F2897F;
+    --done-bg:#16382A; --done-fg:#7FDCAB;
+    --retest-bg:#42310F; --retest-fg:#F1C46C;
+    --queue-bg:#172F4F; --queue-fg:#8DB9F2;
+    --textrep-bg:#33244F; --textrep-fg:#C3A5F2;
+    --cancel-bg:#472320; --cancel-fg:#F1A39B;
+    --tag-bg:#2A343C; --tag-fg:#B7C2CB;
+    --none-bg:#273039; --none-fg:#8A97A2;
+    --x0-bg:#12383D; --x0-fg:#7FD3DE; --x1-bg:#46202F; --x1-fg:#F0A3C2;
+    --x2-bg:#363B14; --x2-fg:#CFDB7E; --x3-bg:#2B2950; --x3-fg:#B4AEF2;
+  }
+}
+[data-k=done]{--bk:var(--done-bg);--fk:var(--done-fg)}
+[data-k=retest]{--bk:var(--retest-bg);--fk:var(--retest-fg)}
+[data-k=queue]{--bk:var(--queue-bg);--fk:var(--queue-fg)}
+[data-k=textrep]{--bk:var(--textrep-bg);--fk:var(--textrep-fg)}
+[data-k=cancel]{--bk:var(--cancel-bg);--fk:var(--cancel-fg)}
+[data-k=tag]{--bk:var(--tag-bg);--fk:var(--tag-fg)}
+[data-k=none]{--bk:var(--none-bg);--fk:var(--none-fg)}
+[data-k=x0]{--bk:var(--x0-bg);--fk:var(--x0-fg)}
+[data-k=x1]{--bk:var(--x1-bg);--fk:var(--x1-fg)}
+[data-k=x2]{--bk:var(--x2-bg);--fk:var(--x2-fg)}
+[data-k=x3]{--bk:var(--x3-bg);--fk:var(--x3-fg)}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Sarabun","Noto Sans Thai","Leelawadee UI","Tahoma",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.page{max-width:1500px;margin:0 auto;padding:20px 20px 60px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.top h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.top p{margin:2px 0 0;color:var(--mute)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 12px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--mute)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--warn);border-color:transparent;background:transparent}
+.btn.danger:hover{border-color:var(--warn)}
+.btn.tiny{padding:0 5px;border:0;background:transparent;color:var(--mute);line-height:1.2}
+.dirty{display:inline-flex;align-items:center;gap:6px;color:var(--retest-fg);background:var(--retest-bg);padding:4px 10px;border-radius:99px;font-size:12.5px}
+.dirty[hidden]{display:none}
+
+/* summary */
+.summary{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.bar{display:flex;gap:2px;height:16px}
+.seg{border:0;padding:0;min-width:6px;background:var(--fk);cursor:pointer;opacity:.9}
+.seg:first-child{border-radius:4px 0 0 4px}.seg:last-child{border-radius:0 4px 4px 0}.seg:only-child{border-radius:4px}
+.seg:hover{opacity:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:12px}
+.lg .brk{color:var(--mute);font-size:12px;flex-basis:100%;white-space:normal;text-align:left}
+.lg{flex-wrap:wrap}
+.sumhead{font-size:12.5px;font-weight:600;color:var(--mute);margin:0 0 8px}
+.sumsep{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.lg{display:inline-flex;align-items:baseline;gap:6px;border:1px solid transparent;background:transparent;padding:3px 8px;border-radius:7px;cursor:pointer}
+.lg:hover{background:var(--soft)}
+.lg.on{border-color:var(--fk);background:var(--bk)}
+.lg i{width:10px;height:10px;border-radius:3px;background:var(--fk);align-self:center}
+.lg b{font-size:16px;font-variant-numeric:tabular-nums}
+.lg small{color:var(--mute);font-size:12px}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.toolbar input[type=search],.toolbar select{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 10px;min-width:0}
+.toolbar input[type=search]{width:250px}
+.toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel);border-radius:7px;cursor:pointer;user-select:none}
+.toggle input{margin:0}
+.count{margin-left:auto;color:var(--mute);font-variant-numeric:tabular-nums}
+.bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent);color:var(--accent-ink);padding:8px 12px;border-radius:8px;margin-bottom:10px}
+.bulk[hidden]{display:none}
+.bulk .btn{background:transparent;color:inherit;border-color:color-mix(in srgb,var(--accent-ink) 45%,transparent)}
+.bulk .sp{flex:1}
+
+/* table */
+.tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:calc(100vh - 150px);min-height:240px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1500px}
+th,td{padding:8px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{position:sticky;top:0;background:var(--soft);z-index:2;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--line);color:var(--mute);font-size:13px}
+thead th[data-sort]{cursor:pointer}
+thead th[aria-sort=ascending]::after{content:" ▲";font-size:10px}
+thead th[aria-sort=descending]::after{content:" ▼";font-size:10px}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--soft)}
+tbody tr.sel td{background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+td.code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12.5px;white-space:nowrap}
+td.desc{min-width:260px;max-width:360px}
+td.note{min-width:180px;color:var(--mute)}
+td.upd{white-space:nowrap;color:var(--mute);font-size:12.5px}
+td.c-sel,th.c-sel{width:34px;padding-right:0}
+.prev{opacity:.7}
+.chip{display:inline-block;white-space:nowrap;background:var(--bk);color:var(--fk);padding:2px 8px;border-radius:99px;font-size:12.5px;line-height:1.5;margin:1px 4px 1px 0}
+.chip[data-k=tag]{border:1px solid color-mix(in srgb,var(--fk) 30%,transparent)}
+.chip[data-k=cancel]{text-decoration:line-through}
+.stbtn{display:inline-flex;align-items:center;flex-wrap:wrap;gap:0;border:1px dashed transparent;background:transparent;padding:2px 4px;margin:-3px -5px;border-radius:7px;cursor:pointer;text-align:left}
+tr:hover .stbtn,.stbtn:focus-visible{border-color:var(--line)}
+.stbtn .none{color:var(--mute)}
+.chg{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:2px;align-self:center}
+.yn{display:inline-block;min-width:22px;text-align:center;padding:1px 6px;border-radius:5px;font-size:12.5px}
+.yn.y{background:var(--done-bg);color:var(--done-fg)}
+.yn.n{background:var(--none-bg);color:var(--none-fg)}
+.yn.o{background:var(--retest-bg);color:var(--retest-fg)}
+.star{color:var(--retest-fg);background:var(--retest-bg);padding:1px 7px;border-radius:5px;font-size:12.5px}
+.defect{min-width:130px;white-space:nowrap}
+.defect a{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.defect .dfedit{border:1px dashed transparent;background:transparent;color:var(--mute);cursor:pointer;border-radius:6px;padding:0 5px;margin-left:2px}
+tr:hover .dfedit,.dfedit:focus-visible{border-color:var(--line)}
+.dfedit.add{color:var(--mute)}
+.fl{text-align:center}
+.fl input{width:16px;height:16px;margin:2px 0;cursor:pointer;accent-color:var(--accent)}
+select.prio{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 4px;cursor:pointer;min-width:44px}
+select.prio.p1{background:var(--cancel-bg);color:var(--cancel-fg);border-color:transparent;font-weight:700}
+select.prio.p2{background:var(--retest-bg);color:var(--retest-fg);border-color:transparent;font-weight:700}
+select.prio.p3{background:var(--queue-bg);color:var(--queue-fg);border-color:transparent;font-weight:700}
+.dbody select{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 10px;font-size:14px}
+.empty{padding:40px;text-align:center;color:var(--mute)}
+
+/* popover */
+.pop{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:12px;width:min(360px,calc(100vw - 16px))}
+.pop h3{margin:0 0 8px;font-size:13px;color:var(--mute);font-weight:600}
+.pop .row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.menu{display:flex;flex-direction:column;gap:2px;padding:6px;width:260px}
+.menu button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer}
+.menu button:hover{background:var(--soft)}
+.pop .dl{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+.pop .dl input{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:7px 9px;width:100%;min-width:0;font-size:14px}
+.pop .grid2{margin-bottom:10px}
+.pop .d-err{color:var(--warn);font-size:13px;min-height:18px;margin-top:6px}
+.pk-list{display:flex;flex-wrap:wrap;gap:6px}
+.chip.pk{border:1px dashed color-mix(in srgb,var(--fk) 55%,transparent);background:transparent;cursor:pointer;padding:3px 10px;margin:0}
+.chip.pk.on{background:var(--bk);border-style:solid;font-weight:600}
+.chip.pk.on::before{content:"✓ "}
+.pk-add{display:flex;gap:6px;margin-top:10px}
+.pk-add input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:6px 9px}
+
+/* drawer */
+#scrim{position:fixed;inset:0;background:rgba(10,16,20,.45);z-index:40}
+#drawer{position:fixed;top:0;right:0;bottom:0;height:100vh;height:100dvh;width:min(520px,100vw);background:var(--panel);z-index:41;display:flex;flex-direction:column;border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(0,0,0,.18)}
+#drawer[hidden],#scrim[hidden]{display:none}
+#drawer header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+#drawer h2{margin:0;font-size:17px}
+.dbody{padding:16px 18px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.dbody label,.dbody .field{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+.dbody input[type=text],.dbody textarea{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 10px;color:var(--ink);width:100%;font-size:14px}
+.dbody textarea{resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.check{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--ink)!important;padding-top:20px}
+.hist{border-top:1px solid var(--line);padding-top:12px;font-size:13px}
+.hist h4{margin:0 0 8px;color:var(--mute);font-weight:600}
+.hist .h{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding:4px 0;color:var(--mute)}
+#drawer footer{display:flex;gap:8px;align-items:center;padding:0;margin-top:-2px}
+#drawer footer .sp{flex:1}
+
+/* dialogs */
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;max-width:calc(100vw - 24px)}
+dialog:not([open]){display:none}
+dialog.fallback{position:fixed;inset:0;margin:auto;height:fit-content;max-height:90vh;overflow:auto;z-index:90;box-shadow:0 0 0 100vmax rgba(10,16,20,.5)}
+.btn.tiny.ren{padding:2px 9px;font-size:15px;margin-left:2px}
+.ver{margin-top:18px;color:var(--mute);font-size:12px;text-align:center}
+dialog::backdrop{background:rgba(10,16,20,.5)}
+.dlg{padding:18px;width:min(420px,calc(100vw - 24px))}
+.dlg h3{margin:0 0 6px;font-size:16px}
+.dlg p{margin:0 0 12px;color:var(--mute)}
+.dlg input{width:100%;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:8px 10px}
+.dlg .row{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#dlgHist .dlg{width:min(860px,calc(100vw - 24px));max-height:80vh;display:flex;flex-direction:column}
+#histBody{overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:8px}
+#histBody table{min-width:0}
+#histBody td{vertical-align:middle}
+#histBody tbody tr{cursor:default}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;z-index:100;max-width:calc(100vw - 32px)}
+.toast[hidden]{display:none}
+@media (max-width:640px){.grid3{grid-template-columns:1fr 1fr}.toolbar input[type=search]{width:100%}.count{margin-left:0}}
+@media (prefers-reduced-motion:no-preference){#drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:0}}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div>
+      <h1>SiIT Questionnaire · Status Log</h1>
+      <p id="sub"></p>
+    </div>
+    <div class="actions">
+      <span class="dirty" id="dirty" hidden>● มีการแก้ไขที่ยังไม่ได้ Export</span><span id="sync" style="font-size:12px;color:var(--mute)" hidden>● ซิงก์สดกับทุกคน</span>
+      <button class="btn primary" id="btnAdd">+ เพิ่มรายการ</button>
+      <button class="btn" id="btnHist">ประวัติการเปลี่ยนแปลง</button>
+      <button class="btn" id="btnRound">เริ่มรอบใหม่</button>
+      <button class="btn" id="btnImport">Import .xlsx</button>
+      <button class="btn" id="btnExport">Export .xlsx ▾</button>
+      <input type="file" id="fileIn" accept=".xlsx,.xls" hidden>
+    </div>
+  </div>
+
+  <section class="summary" aria-label="สรุปสถานะ">
+    <div class="sumhead">สถานะ <span id="sumNote" style="font-weight:400"></span></div>
+    <div class="bar" id="bar"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="toolbar" aria-label="ตัวกรอง">
+    <input type="search" id="q" placeholder="ค้นหา Code, ชื่อฟอร์ม, Note…" aria-label="ค้นหา">
+    <select id="fGroup" aria-label="Group"></select>
+    <select id="fStatus" aria-label="สถานะ"></select>
+    <select id="fOwner" aria-label="Owner"></select>
+    <select id="fPrio" aria-label="Priority">
+      <option value="">Priority: ทั้งหมด</option>
+      <option value="1">Priority 1</option><option value="2">Priority 2</option><option value="3">Priority 3</option>
+      <option value="__none">ไม่มี Priority</option>
+    </select>
+ <select id="fDefect" aria-label="UAT Defect"><option value="">Defect: ทั้งหมด</option><option value="1">มี Defect no.</option><option value="0">ไม่มี Defect no.</option></select>
+    <select id="fScr01" aria-label="SCR01"><option value="">SCR01: ทั้งหมด</option><option value="1">SCR01: ติ๊ก</option><option value="0">SCR01: ไม่ติ๊ก</option></select>
+    <select id="fBase" aria-label="Base"><option value="">Base: ทั้งหมด</option><option value="1">Base: ติ๊ก</option><option value="0">Base: ไม่ติ๊ก</option></select>
+    <select id="fTextrep" aria-label="Textrep"><option value="">Textrep: ทั้งหมด</option><option value="1">Textrep: ติ๊ก</option><option value="0">Textrep: ไม่ติ๊ก</option></select>
+    <label class="toggle"><input type="checkbox" id="fChanged"> สถานะเปลี่ยนจากรอบก่อน</label>
+    <button class="btn" id="btnReset">ล้างตัวกรอง</button>
+    <span class="count" id="count"></span>
+  </section>
+
+  <div class="bulk" id="bulk" hidden>
+    <b id="bulkN"></b>
+    <button class="btn" id="bulkStatus">เปลี่ยนสถานะ</button>
+    <button class="btn" id="bulkOwner">ตั้ง Owner</button>
+    <button class="btn" id="bulkPrio">ตั้ง Priority</button>
+    <span class="sp"></span>
+    <button class="btn" id="bulkClear">ล้างการเลือก</button>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="c-sel"><input type="checkbox" id="selAll" aria-label="เลือกทั้งหมดที่แสดงอยู่"></th>
+          <th data-sort="group">Group</th>
+          <th data-sort="code">Code</th>
+          <th data-sort="desc">Description</th>
+          <th data-sort="prev" id="thPrev"></th>
+          <th data-sort="status" id="thCur"></th>
+          <th data-sort="priority">Priority</th>
+          <th data-sort="scr01" class="fl">SCR01</th>
+          <th data-sort="base" class="fl">Base</th>
+          <th data-sort="textrep" class="fl">Textrep</th>
+          <th data-sort="owner">Owner</th>
+          <th data-sort="defectNo">UAT Defect no.</th>
+          <th>Note</th>
+          <th data-sort="updated">แก้ไขล่าสุด</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>ไม่พบรายการที่ตรงกับตัวกรอง ลองกด “ล้างตัวกรอง”</div>
+  </div>
+</div>
+
+<div class="ver">เวอร์ชัน 1.4 · 30/10/2026 (ข้อมูลล่าสุดจากบอร์ดซิงก์)</div>
+<div id="scrim" hidden></div>
+<aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
+  <header><h2 id="dTitle"></h2><button class="btn tiny" id="dClose" aria-label="ปิด">✕</button></header>
+  <div class="dbody">
+    <div class="grid2">
+      <label>Group<input type="text" id="f-group" list="dl-group"></label>
+      <label>Code<input type="text" id="f-code"></label>
+    </div>
+    <label>Description<textarea id="f-desc" rows="2"></textarea></label>
+    <div class="field"><span>สถานะปัจจุบัน</span><div id="f-status"></div></div>
+    <label>สถานะรอบก่อน<input type="text" id="f-prev" list="dl-status"></label>
+    <div class="field"><span>รายการที่ต้องทำ</span>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;color:var(--ink)">
+        <label class="check" style="padding-top:0"><input type="checkbox" id="f-scr01"> SCR01</label>
+        <label class="check" style="padding-top:0"><input type="checkbox" id="f-base"> Base</label>
+        <label class="check" style="padding-top:0"><input type="checkbox" id="f-textrep"> Textrep</label>
+      </div>
+    </div>
+    <div class="grid2">
+      <label>Priority<select id="f-priority"><option value="">ไม่ระบุ</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+      <label>Owner<input type="text" id="f-owner" list="dl-owner"></label>
+    </div>
+    <div class="grid2">
+      <label>UAT Defect no.<input type="text" id="f-defno" placeholder="เช่น 1234"></label>
+      <label>UAT Defect URL<input type="text" id="f-defurl" inputmode="url" placeholder="https://…"></label>
+    </div>
+    <label>Note<textarea id="f-note" rows="3"></textarea></label>
+    <footer>
+    <button class="btn danger" id="dDelete">ลบรายการ</button>
+    <span class="sp"></span>
+    <button class="btn" id="dCancel">ยกเลิก</button>
+    <button class="btn primary" id="dSave">บันทึก</button>
+    </footer>
+    <div class="hist" id="f-hist"></div>
+  </div>
+</aside>
+
+<datalist id="dl-group"></datalist>
+<datalist id="dl-owner"></datalist>
+<datalist id="dl-status"></datalist>
+<datalist id="dl-yn"><option value="y"><option value="n"><option value="รวม"></datalist>
+
+<dialog id="dlgText"><div class="dlg">
+  <h3 id="dlgTextTitle"></h3><p id="dlgTextLabel"></p>
+  <input type="text" id="dlgTextInput">
+  <div class="row"><button class="btn" id="dlgTextCancel">ยกเลิก</button><button class="btn primary" id="dlgTextOk">ตกลง</button></div>
+</div></dialog>
+
+<dialog id="dlgDate"><div class="dlg">
+  <h3 id="dlgDTitle"></h3>
+  <p>เลือกวันที่ หรือช่วงวันที่ ชื่อคอลัมน์จะเปลี่ยนตามอัตโนมัติ (แก้ชื่อเองได้)</p>
+  <div class="grid2" style="margin-bottom:12px">
+    <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)">วันที่<input type="date" id="dlgDFrom"></label>
+    <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)">ถึงวันที่ (ถ้าเป็นช่วง)<input type="date" id="dlgDTo"></label>
+  </div>
+  <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)">ชื่อคอลัมน์ (ใช้เป็นหัวคอลัมน์ตอน Export)<input type="text" id="dlgDName"></label>
+  <div id="dlgDErr" style="color:var(--warn);font-size:13px;min-height:18px;margin-top:6px"></div>
+  <div class="row" style="margin-top:6px"><button class="btn" id="dlgDCancel">ยกเลิก</button><button class="btn primary" id="dlgDOk">ตกลง</button></div>
+</div></dialog>
+
+<dialog id="dlgConfirm"><div class="dlg">
+  <h3 id="dlgConfirmTitle"></h3><p id="dlgConfirmMsg"></p>
+  <div class="row"><button class="btn" id="dlgConfirmCancel">ยกเลิก</button><button class="btn primary" id="dlgConfirmOk">ตกลง</button></div>
+</div></dialog>
+
+<dialog id="dlgHist"><div class="dlg">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <h3 style="margin:0">ประวัติการเปลี่ยนแปลง</h3>
+    <button class="btn tiny" id="histClose" aria-label="ปิด">✕</button>
+  </div>
+  <input type="search" id="histQ" placeholder="ค้นหา Code หรือชื่อฟอร์ม" style="margin-top:10px">
+  <div id="histBody"></div>
+</div></dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const INIT = {"prevLabel": "Status 15/10/2026", "curLabel": "Status 30/10/2026", "rows": [{"base": "1", "code": "ANES04", "defectNo": "", "defectUrl": "", "desc": "Nutrition Evaluation Form", "group": "ANES", "id": "r1", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES06", "defectNo": "", "defectUrl": "", "desc": "Preoperative Anemia Management Follow-up", "group": "ANES", "id": "r2", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES07", "defectNo": "", "defectUrl": "", "desc": "Pre - Anesthesia Assessment (AN02.1)", "group": "ANES", "id": "r3", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES09", "defectNo": "", "defectUrl": "", "desc": "Pre - Anesthesia Assessment (AN00)", "group": "ANES", "id": "r4", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES10", "defectNo": "", "defectUrl": "", "desc": "Pre - Anesthesia Assessment (AN01)", "group": "ANES", "id": "r5", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES11", "defectNo": "", "defectUrl": "", "desc": "5x Sit to Stand", "group": "ANES", "id": "r6", "note": "", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES12", "defectNo": "", "defectUrl": "", "desc": "Hand Grip Strength", "group": "ANES", "id": "r7", "note": "", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "1", "updated": ""}, {"base": "1", "code": "ANES13", "defectNo": "", "defectUrl": "", "desc": "Indication SiPAP consult_pediatric", "group": "ANES", "id": "r8", "note": "SCR01: รวม", "owner": "IT1", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "ยกเลิกใช้ตัวใหม่", "textrep": "", "updated": "2026-10-26 18:28"}, {"base": "1", "code": "ANES14", "defectNo": "", "defectUrl": "", "desc": "Indication SiPAP consult_adult (15 - 44 yrs)", "group": "ANES", "id": "r9", "note": "", "owner": "IT1", "prev": "Done Base Test Live", "priority": "", "scr01": "", "status": "ยกเลิกใช้ตัวใหม่", "textrep": "", "updated": "2026-10-26 18:27"}, {"base": "1", "code": "ANES15", "defectNo": "", "defectUrl": "", "desc": "Indication SiPAP consult_adult (45 - 64 yrs)", "group": "ANES", "id": "r10", "note": "", "owner": "IT1", "prev": "Done Base Test Live", "priority": "", "scr01": "", "status": "ยกเลิกใช้ตัวใหม่", "textrep": "", "updated": "2026-10-26 18:27"}, {"base": "1", "code": "ANES16", "defectNo": "", "defectUrl": "", "desc": "Indication SiPAP consult_adult (>= 65 yrs)", "group": "ANES", "id": "r11", "note": "", "owner": "IT1", "prev": "Done Base Test Live", "priority": "", "scr01": "", "status": "ยกเลิกใช้ตัวใหม่", "textrep": "", "updated": "2026-10-26 18:27"}, {"base": "", "code": "ANES17", "defectNo": "", "defectUrl": "", "desc": "ACC/AHA 2024 Preoperative Cardiovascular Assessment", "group": "ANES", "id": "r12", "note": "", "owner": "SI IT", "prev": "ISC, อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "ISC", "textrep": "", "updated": ""}, {"base": "", "code": "ANES18", "defectNo": "", "defectUrl": "", "desc": "Indication SiPAP Consult", "group": "ANES", "id": "r13", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "1", "code": "SIRLU01", "defectNo": "", "defectUrl": "", "desc": "Preoperative investigation (Si-RLU)_pediatric", "group": "ANES", "id": "r14", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIRLU02", "defectNo": "", "defectUrl": "", "desc": "Preoperative investigation (Si-RLU)_adult (15 - 44 yrs)", "group": "ANES", "id": "r15", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIRLU03", "defectNo": "", "defectUrl": "", "desc": "Preoperative investigation (Si-RLU)_adult (45 - 64 yrs)", "group": "ANES", "id": "r16", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIRLU04", "defectNo": "", "defectUrl": "", "desc": "Preoperative investigation (Si-RLU)_adult (>= 65 yrs)", "group": "ANES", "id": "r17", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "RADCTRQ", "defectNo": "", "defectUrl": "", "desc": "CT Request", "group": "RAD", "id": "r18", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "1", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "1", "code": "RADFLURQ", "defectNo": "", "defectUrl": "", "desc": "Fluoroscopy Request", "group": "RAD", "id": "r19", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "1", "code": "RADMGRQ", "defectNo": "", "defectUrl": "", "desc": "Mammogram Request", "group": "RAD", "id": "r20", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "1", "code": "RADMRRQ", "defectNo": "", "defectUrl": "", "desc": "MRI Request", "group": "RAD", "id": "r21", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "1", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "1", "code": "RADUSRQ", "defectNo": "", "defectUrl": "", "desc": "Ultrasound Request", "group": "RAD", "id": "r22", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "", "code": "RADUSRQ", "defectNo": "", "defectUrl": "", "desc": "Ultrasound Request Portable", "group": "RAD", "id": "r23", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-26 18:28"}, {"base": "1", "code": "RADCRRQ", "defectNo": "", "defectUrl": "", "desc": "XRAY Request", "group": "RAD", "id": "r24", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "1", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "", "code": "RADCRRQ", "defectNo": "", "defectUrl": "", "desc": "XRAY Request Portable", "group": "RAD", "id": "r25", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "1", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-26 18:28"}, {"base": "1", "code": "RADBDRQ", "defectNo": "", "defectUrl": "", "desc": "Bone Miniral Densitometry Request", "group": "RAD", "id": "r26", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ Confirm จาก RAD", "textrep": "", "updated": "2026-10-30 11:10"}, {"base": "1", "code": "RADNMRQ", "defectNo": "", "defectUrl": "", "desc": "Nuclear Medicine Request", "group": "RAD", "id": "r27", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ Confirm จาก RAD", "textrep": "", "updated": "2026-10-30 11:10"}, {"base": "1", "code": "RADPTRQ", "defectNo": "", "defectUrl": "", "desc": "PET/CT Request", "group": "RAD", "id": "r28", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ Confirm จาก RAD", "textrep": "", "updated": "2026-10-30 11:10"}, {"base": "1", "code": "RADCT", "defectNo": "", "defectUrl": "", "desc": "Radiology Nurse's Note", "group": "RAD", "id": "r29", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "RADCDRQ", "defectNo": "", "defectUrl": "", "desc": "write CD Request", "group": "RAD", "id": "r30", "note": "", "owner": "SI IT", "prev": "อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE10", "defectNo": "", "defectUrl": "", "desc": "ผลการตรวจส่องกล้องกระเพาะปัสสาวะ", "group": "GYNE", "id": "r31", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE11", "defectNo": "", "defectUrl": "", "desc": "การประเมินการขับถ่ายปัสสาวะผิดปกติและอวัยวะอุ้งเชิงกรานหย่อนในสตรี", "group": "GYNE", "id": "r32", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE6", "defectNo": "", "defectUrl": "", "desc": "Menopause clinic", "group": "GYNE", "id": "r33", "note": "ยังไม่มี Layout + textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE7", "defectNo": "", "defectUrl": "", "desc": "Infertile firstvisit", "group": "GYNE", "id": "r34", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE9", "defectNo": "", "defectUrl": "", "desc": "ผลการตรวจยูโรพลศาสตร์", "group": "GYNE", "id": "r35", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE12", "defectNo": "", "defectUrl": "", "desc": "PCOS clinic first visit", "group": "GYNE", "id": "r36", "note": "ไม่ได้ set condition hidden > clear value\nยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE13", "defectNo": "", "defectUrl": "", "desc": "Dysmenorrhea clinic first visit", "group": "GYNE", "id": "r37", "note": "ไม่ได้ set condition hidden > clear value\nยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE14", "defectNo": "", "defectUrl": "", "desc": "AUB clinic first visit", "group": "GYNE", "id": "r38", "note": "ไม่ได้ set condition hidden > clear value\nยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE15", "defectNo": "", "defectUrl": "", "desc": "Menopause clinic first visit", "group": "GYNE", "id": "r39", "note": "ไม่ได้ set condition hidden > clear value\nยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE16", "defectNo": "", "defectUrl": "", "desc": "Endometrial Cancer (POD)", "group": "GYNECDR", "id": "r40", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE17", "defectNo": "", "defectUrl": "", "desc": "Endometrial Cancer (Postoperative)", "group": "GYNECDR", "id": "r41", "note": "", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "1", "code": "SIGYNE18", "defectNo": "", "defectUrl": "", "desc": "ข้อห้ามการใส่ห่วงอนามัย (IUD)", "group": "GYNE", "id": "r42", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "1", "code": "SISSI", "defectNo": "", "defectUrl": "", "desc": "Surgical Site Infection", "group": "GYNE", "id": "r43", "note": "", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live, ISC", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE19", "defectNo": "", "defectUrl": "", "desc": "เอกสารประกอบการให้คำปรึกษาเรื่องการผ่าตัดส่องกล้องทางหน้าท้องเพื่อทำหมันโดยการจี้ท่อนำไข่ด้วยไฟฟ้า", "group": "GYNE", "id": "r81", "note": "", "owner": "IT1", "prev": "", "priority": "", "scr01": "", "status": "Done Base Test Live", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE20", "defectNo": "", "defectUrl": "", "desc": "Checklist Preadmission at OPD : Gyne Endometrial Cancer Surgeon", "group": "GYNECDR", "id": "r44", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE21", "defectNo": "", "defectUrl": "", "desc": "Checklist Preadmission at OPD : Gyne Endometrial Cancer Nurse", "group": "GYNECDR", "id": "r45", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE22", "defectNo": "", "defectUrl": "", "desc": "Checklist Preoprative at ward : Gyne Endometrial Cancer", "group": "GYNECDR", "id": "r46", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE23", "defectNo": "", "defectUrl": "", "desc": "Checklist Intraoperative at OR : Gyne Endometrial Cancer", "group": "GYNECDR", "id": "r47", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE24", "defectNo": "", "defectUrl": "", "desc": "Checklist Perioperative Aneasthetic Care : Gyne Endometrial Cancer", "group": "GYNECDR", "id": "r48", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE25", "defectNo": "", "defectUrl": "", "desc": "Checklist Postoperative at ward : Gyne Endometrial Cancer", "group": "GYNECDR", "id": "r49", "note": "", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": ""}, {"base": "", "code": "SIGYNE26", "defectNo": "", "defectUrl": "", "desc": "Checklist Postdischarge Telephone : Gyne Endometrial Cancer", "group": "GYNECDR", "id": "r82", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "1", "status": "Phase2", "textrep": "", "updated": "2026-10-28 23:40"}, {"base": "1", "code": "SIOB3", "defectNo": "", "defectUrl": "", "desc": "Immediate postpartum hemorrhage in labour room", "group": "OB", "id": "r50", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIOB4", "defectNo": "", "defectUrl": "", "desc": "Manual Vacuum Aspiration (MVA) for GA <= 8 weeks' gestation or Uterine curettage for GA <= 12 weeks' gestation", "group": "OB", "id": "r51", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIOB6", "defectNo": "", "defectUrl": "", "desc": "แบบประเมินการเลี้ยงลูกด้วยนมแม่", "group": "OB", "id": "r52", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIPPN", "defectNo": "", "defectUrl": "", "desc": "Postpartum Progress Note", "group": "OB", "id": "r53", "note": "recheck", "owner": "SI IT", "prev": "Done Base Test Live, ISC", "priority": "", "scr01": "1", "status": "Done Base Test Live, ISC", "textrep": "", "updated": "2026-10-30 11:10"}, {"base": "", "code": "SIPPN01", "defectNo": "", "defectUrl": "", "desc": "Postpartum Progress Note", "group": "OB", "id": "rb6hr96bavk5", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "1", "status": "รอ User Retest, IT1", "textrep": "", "updated": "2026-10-28 23:56"}, {"base": "1", "code": "SIERSEP", "defectNo": "", "defectUrl": "", "desc": "Sepsis", "group": "ER", "id": "r54", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIERSTE", "defectNo": "", "defectUrl": "", "desc": "STEMI", "group": "ER", "id": "r55", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIERSFT", "defectNo": "", "defectUrl": "", "desc": "Stroke Fast Track", "group": "ER", "id": "r56", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIFTC01", "defectNo": "", "defectUrl": "", "desc": "General", "group": "Fetal", "id": "r57", "note": "SCR01: y (ISC กำลังทำต่อ) · Base: y (ISC กำลังทำต่อ)", "owner": "SI IT", "prev": "ISC, อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA01", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA < 11 wk", "group": "Fetal", "id": "r83", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA02", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 11+1 - 14 wk", "group": "Fetal", "id": "r84", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA03", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 14+1 - 18 wk", "group": "Fetal", "id": "r85", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA04", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 18+1 - 20 wk", "group": "Fetal", "id": "r86", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA05", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 20+1 - 22 wk", "group": "Fetal", "id": "r87", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA06", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 22+1 - 24 wk", "group": "Fetal", "id": "r88", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA07", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 24+1 - 26 wk", "group": "Fetal", "id": "r89", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA08", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 26+1 - 28 wk", "group": "Fetal", "id": "r90", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:23"}, {"base": "", "code": "SIFTCGA09", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 28+1 - 30 wk", "group": "Fetal", "id": "r91", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "", "code": "SIFTCGA10", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 30+1 - 32 wk", "group": "Fetal", "id": "r92", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "", "code": "SIFTCGA11", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 32+1 - 34 wk", "group": "Fetal", "id": "r93", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "", "code": "SIFTCGA12", "defectNo": "", "defectUrl": "", "desc": "Uncomplicated, GA 34+1 - 36 wk", "group": "Fetal", "id": "r94", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "", "code": "SIFTCGA13", "defectNo": "", "defectUrl": "", "desc": "Delivery Outcomes", "group": "Fetal", "id": "r95", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "", "status": "ISC", "textrep": "", "updated": "2026-10-28 23:24"}, {"base": "1", "code": "SIFTC02", "defectNo": "", "defectUrl": "", "desc": "TTTS", "group": "Fetal", "id": "r58", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "", "code": "SIFTC03", "defectNo": "", "defectUrl": "", "desc": "sFGR", "group": "Fetal", "id": "r59", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "", "code": "SIFTC04", "defectNo": "", "defectUrl": "", "desc": "TAPS", "group": "Fetal", "id": "r60", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "", "code": "SIFTC05", "defectNo": "", "defectUrl": "", "desc": "TRAPS", "group": "Fetal", "id": "r61", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "", "code": "SIFTC06", "defectNo": "", "defectUrl": "", "desc": "Congenital diaphragmatic hernia (CDH)", "group": "Fetal", "id": "r62", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "1", "code": "SIFTC07", "defectNo": "", "defectUrl": "", "desc": "Echogenic lung lesion", "group": "Fetal", "id": "r63", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "1", "code": "SIFTC08", "defectNo": "", "defectUrl": "", "desc": "Pleural effusion", "group": "Fetal", "id": "r64", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "1", "code": "SIFTC09", "defectNo": "", "defectUrl": "", "desc": "Lower urinary tract obstruction (LUTO)", "group": "Fetal", "id": "r65", "note": "รอ ISC แก้ QN ที่เกี่ยวกับ Fetal เสร็จก่อน", "owner": "SI IT", "prev": "รอ User Retest", "priority": "", "scr01": "1", "status": "รอ User Retest", "textrep": "", "updated": "2026-10-28 19:32"}, {"base": "1", "code": "SIADTNAF", "defectNo": "", "defectUrl": "", "desc": "Nursing Assessment Form", "group": "Nurse", "id": "r66", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIPPBF", "defectNo": "", "defectUrl": "", "desc": "Post- Partum & Breast feeding Protocol", "group": "Nurse", "id": "r67", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SICPR", "defectNo": "", "defectUrl": "", "desc": "แบบเก็บข้อมูล CPR", "group": "Nurse", "id": "r68", "note": "ไม่ได้ set condition hidden > clear value\nยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIPEWS", "defectNo": "", "defectUrl": "", "desc": "แบบฟอร์มคำถามเกี่ยวกับ PEWS เมื่อย้าย ICU", "group": "Nurse", "id": "r69", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIPED01", "defectNo": "", "defectUrl": "", "desc": "แบบคัดกรองภาวะโภชนาการสำหรับผู้ป่วยเด็ก (STRONGkids)", "group": "Nurse", "id": "r70", "note": "", "owner": "SI IT", "prev": "IT1, อยู่ในคิวการแก้ไข", "priority": "", "scr01": "1", "status": "IT1", "textrep": "1", "updated": ""}, {"base": "1", "code": "SIPED02", "defectNo": "", "defectUrl": "", "desc": "Behavioral and Emotional Assessment", "group": "Nurse", "id": "r71", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "SICNSLT01", "defectNo": "", "defectUrl": "", "desc": "แบบการขอปรึกษา", "group": "Nurse", "id": "r72", "note": "ยังไม่มี textrep", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "", "code": "SIATT01", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการติดตามมารดาหลังคลอดรายวัน", "group": "แพทย์แผนไทย", "id": "r73", "note": "Base: y (มีปรับแก้เพิ่ม)", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:14"}, {"base": "", "code": "SIATT02", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการบริบาลมารดาหลังคลอดด้วยศาสตร์การแพทย์แผนไทย", "group": "แพทย์แผนไทย", "id": "r74", "note": "Base: y (มีปรับแก้เพิ่ม)", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:14"}, {"base": "", "code": "SIATT03", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการตรวจจับลักษณะชีพจรบริเวณข้อมือ", "group": "แพทย์แผนไทย", "id": "r75", "note": "textrep done base", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:15"}, {"base": "", "code": "SIATT04", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการให้การดูแลสตรีตั้งครรภ์ในห้องคลอด", "group": "แพทย์แผนไทย", "id": "r76", "note": "", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:14"}, {"base": "", "code": "SIATT05", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการดูแลสตรีตั้งครรภ์ด้วยศาสตร์การแพทย์แผนไทย", "group": "แพทย์แผนไทย", "id": "r77", "note": "textrep done base", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:15"}, {"base": "", "code": "SIATT06", "defectNo": "", "defectUrl": "", "desc": "แบบบันทึกการตรวจลักษณะของน้ำนม", "group": "แพทย์แผนไทย", "id": "r78", "note": "", "owner": "IT1", "prev": "เหลือแก้ Textrep", "priority": "", "scr01": "", "status": "IT1", "textrep": "", "updated": "2026-10-30 11:14"}, {"base": "1", "code": "SIIDEN", "defectNo": "", "defectUrl": "", "desc": "เอกสารการระบุตัวผู้ป่วย อวัยวะ ตำแหน่ง/ข้างที่ทำผ่าตัด", "group": "Nurse", "id": "r79", "note": "textrep done base", "owner": "SI IT", "prev": "Done Base Test Live", "priority": "", "scr01": "1", "status": "Done Base Test Live", "textrep": "1", "updated": ""}, {"base": "1", "code": "MF05", "defectNo": "", "defectUrl": "", "desc": "Mortuary Form", "group": "Mortuary", "id": "r80", "note": "", "owner": "IT1", "prev": "Done Base Test Live, IT1", "priority": "", "scr01": "1", "status": "อยู่ในคิวการแก้ไข", "textrep": "", "updated": "2026-10-30 11:14"}, {"base": "1", "code": "SIPAPFORM", "defectNo": "", "defectUrl": "", "desc": "Consultation SiPAP OPD", "group": "ANES", "id": "rmvs35trb8ni", "note": "", "owner": "SI IT", "prev": "", "priority": "", "scr01": "1", "status": "IT1", "textrep": "1", "updated": "2026-10-30 11:10"}], "history": [{"code": "SIATT05", "desc": "แบบบันทึกการดูแลสตรีตั้งครรภ์ด้วยศาสตร์การแพทย์แผนไทย", "from": "รอ User Retest", "rid": "r77", "to": "IT1", "ts": "2026-10-30 11:15", "type": "status"}, {"code": "SIATT03", "desc": "แบบบันทึกการตรวจจับลักษณะชีพจรบริเวณข้อมือ", "from": "รอ User Retest", "rid": "r75", "to": "IT1", "ts": "2026-10-30 11:15", "type": "status"}, {"code": "MF05", "desc": "Mortuary Form", "from": "Done Base Test Live, IT1", "rid": "r80", "to": "อยู่ในคิวการแก้ไข", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT06", "desc": "แบบบันทึกการตรวจลักษณะของน้ำนม", "from": "IT1, รอ Confirm จาก User", "rid": "r78", "to": "IT1", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT05", "desc": "แบบบันทึกการดูแลสตรีตั้งครรภ์ด้วยศาสตร์การแพทย์แผนไทย", "from": "IT1, รอ Confirm จาก User", "rid": "r77", "to": "รอ User Retest", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT04", "desc": "แบบบันทึกการให้การดูแลสตรีตั้งครรภ์ในห้องคลอด", "from": "IT1, รอ Confirm จาก User", "rid": "r76", "to": "IT1", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT03", "desc": "แบบบันทึกการตรวจจับลักษณะชีพจรบริเวณข้อมือ", "from": "IT1, รอ Confirm จาก User", "rid": "r75", "to": "รอ User Retest", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT02", "desc": "แบบบันทึกการบริบาลมารดาหลังคลอดด้วยศาสตร์การแพทย์แผนไทย", "from": "IT1, รอ Confirm จาก User", "rid": "r74", "to": "IT1", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIATT01", "desc": "แบบบันทึกการติดตามมารดาหลังคลอดรายวัน", "from": "IT1, รอ Confirm จาก User", "rid": "r73", "to": "IT1", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIPPN", "desc": "Postpartum Progress Note", "from": "ยกเลิกใช้ตัวใหม่", "rid": "r53", "to": "Done Base Test Live, ISC", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "RADPTRQ", "desc": "PET/CT Request", "from": "รอ Confirm จาก RAD, Phase2", "rid": "r28", "to": "รอ Confirm จาก RAD", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "RADNMRQ", "desc": "Nuclear Medicine Request", "from": "รอ Confirm จาก RAD, Phase2", "rid": "r27", "to": "รอ Confirm จาก RAD", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "RADBDRQ", "desc": "Bone Miniral Densitometry Request", "from": "รอ Confirm จาก RAD, Phase2", "rid": "r26", "to": "รอ Confirm จาก RAD", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIPAPFORM", "desc": "Consultation SiPAP OPD", "from": "Done Base Test Live, IT1", "rid": "rmvs35trb8ni", "to": "IT1", "ts": "2026-10-30 11:10", "type": "status"}, {"code": "SIPPN01", "desc": "", "from": "IT1, Ready for retest", "rid": "rb6hr96bavk5", "to": "รอ User Retest, IT1", "ts": "2026-10-28 23:56", "type": "status"}, {"code": "SIPPN01", "desc": "", "from": "", "rid": "rb6hr96bavk5", "to": "IT1, Ready for retest", "ts": "2026-10-28 23:56", "type": "created"}, {"code": "SIPPN", "desc": "Postpartum Progress Note", "from": "Done Base Test Live, ISC, IT1", "rid": "r53", "to": "ยกเลิกใช้ตัวใหม่", "ts": "2026-10-28 23:56", "type": "status"}, {"code": "SIATT06", "desc": "แบบบันทึกการตรวจลักษณะของน้ำนม", "from": "รอ Confirm จาก User", "rid": "r78", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:26", "type": "status"}, {"code": "SIATT05", "desc": "แบบบันทึกการดูแลสตรีตั้งครรภ์ด้วยศาสตร์การแพทย์แผนไทย", "from": "รอ Confirm จาก User", "rid": "r77", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:26", "type": "status"}, {"code": "SIATT04", "desc": "แบบบันทึกการให้การดูแลสตรีตั้งครรภ์ในห้องคลอด", "from": "รอ Confirm จาก User", "rid": "r76", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:26", "type": "status"}, {"code": "SIATT03", "desc": "แบบบันทึกการตรวจจับลักษณะชีพจรบริเวณข้อมือ", "from": "รอ Confirm จาก User", "rid": "r75", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:25", "type": "status"}, {"code": "SIATT02", "desc": "แบบบันทึกการบริบาลมารดาหลังคลอดด้วยศาสตร์การแพทย์แผนไทย", "from": "รอ Confirm จาก User", "rid": "r74", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:25", "type": "status"}, {"code": "SIATT01", "desc": "แบบบันทึกการติดตามมารดาหลังคลอดรายวัน", "from": "รอ Confirm จาก User", "rid": "r73", "to": "IT1, รอ Confirm จาก User", "ts": "2026-10-28 23:25", "type": "status"}, {"code": "SIPAPFORM", "desc": "Consultation SiPAP OPD", "from": "Done Base Test Live", "rid": "rmvs35trb8ni", "to": "Done Base Test Live, IT1", "ts": "2026-10-28 23:25", "type": "status"}, {"code": "SIPPN", "desc": "Postpartum Progress Note", "from": "Done Base Test Live, ISC", "rid": "r53", "to": "Done Base Test Live, ISC, IT1", "ts": "2026-10-28 23:24", "type": "status"}, {"code": "RADPTRQ", "desc": "PET/CT Request", "from": "รอ Confirm จาก RAD", "rid": "r28", "to": "รอ Confirm จาก RAD, Phase2", "ts": "2026-10-28 19:31", "type": "status"}, {"code": "RADNMRQ", "desc": "Nuclear Medicine Request", "from": "รอ Confirm จาก RAD", "rid": "r27", "to": "รอ Confirm จาก RAD, Phase2", "ts": "2026-10-28 19:31", "type": "status"}, {"code": "RADBDRQ", "desc": "Bone Miniral Densitometry Request", "from": "รอ Confirm จาก RAD", "rid": "r26", "to": "รอ Confirm จาก RAD, Phase2", "ts": "2026-10-28 19:31", "type": "status"}, {"code": "SIATT06", "desc": "แบบบันทึกการตรวจลักษณะของน้ำนม", "from": "IT1", "rid": "r78", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT05", "desc": "แบบบันทึกการดูแลสตรีตั้งครรภ์ด้วยศาสตร์การแพทย์แผนไทย", "from": "รอ User Retest", "rid": "r77", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT04", "desc": "แบบบันทึกการให้การดูแลสตรีตั้งครรภ์ในห้องคลอด", "from": "IT1", "rid": "r76", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT03", "desc": "แบบบันทึกการตรวจจับลักษณะชีพจรบริเวณข้อมือ", "from": "รอ User Retest", "rid": "r75", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT02", "desc": "แบบบันทึกการบริบาลมารดาหลังคลอดด้วยศาสตร์การแพทย์แผนไทย", "from": "IT1", "rid": "r74", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT01", "desc": "แบบบันทึกการติดตามมารดาหลังคลอดรายวัน", "from": "รอ User Retest, รอ Confirm จาก User", "rid": "r73", "to": "รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIATT01", "desc": "แบบบันทึกการติดตามมารดาหลังคลอดรายวัน", "from": "รอ User Retest", "rid": "r73", "to": "รอ User Retest, รอ Confirm จาก User", "ts": "2026-10-28 19:28", "type": "status"}, {"code": "SIPAPFORM", "desc": "Consultation SiPAP OPD", "from": "", "rid": "rmvs35trb8ni", "to": "Done Base Test Live", "ts": "2026-10-28 19:23", "type": "created"}, {"code": "ANES18", "desc": "Indication SiPAP Consult", "from": "อยู่ในคิวการแก้ไข", "rid": "r13", "to": "Done Base Test Live", "ts": "2026-10-26 18:28", "type": "status"}, {"code": "ANES16", "desc": "Indication SiPAP consult_adult (>= 65 yrs)", "from": "ยกเลิกใช้ตัวใหม่", "rid": "r11", "to": "Done Base Test Live", "ts": "2026-10-26 18:27", "type": "status"}, {"code": "ANES15", "desc": "Indication SiPAP consult_adult (45 - 64 yrs)", "from": "ยกเลิกใช้ตัวใหม่", "rid": "r10", "to": "Done Base Test Live", "ts": "2026-10-26 18:27", "type": "status"}, {"code": "ANES14", "desc": "Indication SiPAP consult_adult (15 - 44 yrs)", "from": "ยกเลิกใช้ตัวใหม่", "rid": "r9", "to": "Done Base Test Live", "ts": "2026-10-26 18:27", "type": "status"}, {"code": "ANES13", "desc": "Indication SiPAP consult_pediatric", "from": "ยกเลิกใช้ตัวใหม่", "rid": "r8", "to": "Done Base Test Live", "ts": "2026-10-26 18:27", "type": "status"}]};
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const parse = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
+const p2 = n => String(n).padStart(2, '0');
+function nowStr(){ const d = new Date(); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`; }
+function fmtTs(s){ const m = /^(\d{4})-(\d\d)-(\d\d) (\d\d:\d\d)/.exec(s || ''); return m ? `${m[3]}/${m[2]} ${m[4]}` : (s || ''); }
+
+const BASE_STATUSES = ['Done Base Test Live','รอ User Retest','อยู่ในคิวการแก้ไข','เหลือแก้ Textrep','ยกเลิกใช้ตัวใหม่','ISC','IT1'];
+const KIND = {'Done Base Test Live':'done','รอ User Retest':'retest','อยู่ในคิวการแก้ไข':'queue','เหลือแก้ Textrep':'textrep','ยกเลิกใช้ตัวใหม่':'cancel'};
+const TAGS = new Set(['ISC','IT1']);
+function kind(n){
+  if (n === '') return 'none';
+  if (KIND[n]) return KIND[n];
+  if (TAGS.has(n)) return 'tag';
+  let h = 0; for (const c of n) h = (h * 31 + c.codePointAt(0)) >>> 0;
+  return 'x' + (h % 4);
+}
+function primaryOf(str){ const t = parse(str); return t.filter(x => !TAGS.has(x))[0] || t[0] || ''; }
+const chips = toks => toks.map(t => `<span class="chip" data-k="${kind(t)}">${esc(t)}</span>`).join('');
+
+/* ---------- state ---------- */
+function normUrl(u){
+  u = String(u || '').trim(); if (!u) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(u) && !/^https?:/i.test(u) && !/^[\w.-]+:\d+/.test(u)) return null;
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return /^https?:\/\/[^\s<>"']+$/i.test(u) ? u : null;
+}
+function defectCell(r){
+  const u = normUrl(r.defectUrl), n = r.defectNo;
+  let h = '';
+  if (n && u) h = `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${esc(u)}">${esc(n)}</a>`;
+  else if (u) h = `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${esc(u)}">เปิดลิงก์</a>`;
+  else h = esc(n);
+  return h + `<button class="dfedit ${h ? '' : 'add'}" title="แก้ Defect no. / URL" aria-label="แก้ UAT Defect ${esc(r.code)}">${h ? '✎' : '+ เพิ่ม'}</button>`;
+}
+const FLAGS = [['scr01','SCR01'],['base','Base'],['textrep','Textrep']];
+function migrate(r){
+  FLAGS.forEach(([k, label]) => {
+    const v = String(r[k] ?? '').trim(), l = v.toLowerCase();
+    if (['','n','no','false','0'].includes(l)) r[k] = '';
+    else if (['y','yes','true','1'].includes(l)) r[k] = '1';
+    else { r[k] = /^(y|รวม)/i.test(v) ? '1' : ''; r.note = (r.note ? r.note + ' · ' : '') + `${label}: ${v}`; }
+  });
+  if (r.first && !String(r.priority ?? '').trim()) r.priority = '1';
+  delete r.first;
+  r.defectNo = String(r.defectNo ?? '').trim(); r.defectUrl = String(r.defectUrl ?? '').trim();
+  r.priority = ['1','2','3'].includes(String(r.priority ?? '').trim()) ? String(r.priority).trim() : '';
+  return r;
+}
+const S = { rows: INIT.rows.map(r => migrate({...r})), prevLabel: INIT.prevLabel, curLabel: INIT.curLabel, statuses: [...BASE_STATUSES], history: (INIT.history || []).map(h => ({...h})), dirty: false };
+const F = { q:'', group:'', status:'', owner:'', priority:'', defect:'', scr01:'', base:'', textrep:'', changed:false };
+const selected = new Set();
+let sortKey = null, sortDir = 1, nextId = S.rows.length + 1;
+registerStatuses(S.rows.flatMap(r => [...parse(r.status), ...parse(r.prev)]));
+registerStatuses(["Done Base Test Live", "รอ User Retest", "อยู่ในคิวการแก้ไข", "เหลือแก้ Textrep", "ยกเลิกใช้ตัวใหม่", "ISC", "IT1", "รอ Confirm จาก RAD", "Phase2", "รอ Confirm จาก User"]);
+
+/* ---------- autosave (localStorage, ใช้เมื่อเปิดเป็นไฟล์ในเครื่อง) ---------- */
+const SAVE_KEY = 'siit_qn_state_' + (() => { const s = JSON.stringify(INIT); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); })();
+let saveWarned = false;
+function persist(){
+  if (window.claude) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ rows: S.rows, prevLabel: S.prevLabel, curLabel: S.curLabel, statuses: S.statuses, history: S.history, dirty: S.dirty })); }
+  catch (err) { if (!saveWarned){ saveWarned = true; setTimeout(() => toast('บันทึกอัตโนมัติในเบราว์เซอร์ไม่ได้ — อย่าลืม Export ก่อนปิดหน้านี้'), 300); } }
+}
+(function restore(){
+  if (window.claude) return;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY); if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || !Array.isArray(d.rows) || !d.rows.length) return;
+    S.rows = d.rows.map(r => migrate({...r}));
+    S.prevLabel = d.prevLabel || S.prevLabel; S.curLabel = d.curLabel || S.curLabel;
+    if (Array.isArray(d.statuses)) S.statuses = d.statuses;
+    if (Array.isArray(d.history)) S.history = d.history;
+    S.dirty = !!d.dirty;
+    nextId = S.rows.reduce((m, r) => Math.max(m, parseInt(String(r.id).replace(/\D/g, ''), 10) || 0), 0) + 1;
+    registerStatuses(S.rows.flatMap(r => [...parse(r.status), ...parse(r.prev)]));
+    if (S.dirty) $('dirty').hidden = false;
+  } catch (err) { console.warn('restore ล้มเหลว', err); }
+})();
+
+/* ---------- realtime sync (shared db; falls back to local-only when unavailable) ---------- */
+S.rows.forEach((r, i) => { r.n = i + 1; });
+S.history.forEach((h, i) => { h.hid = 'seed' + i; h.seq = 1000000 - i; });
+const canon = o => JSON.stringify(o, Object.keys(o).sort());
+const metaOf = () => ({ prevLabel: S.prevLabel, curLabel: S.curLabel, statuses: S.statuses.slice() });
+let DB = null, ready = false, histReset = false, lastMeta = canon(metaOf()), metaBusy = 0, queue = Promise.resolve(), lastSnaps = {}, warnT = 0;
+const got = {}, lastRows = new Map(), busy = new Map(), delIds = new Set(), histSeen = new Set(S.history.map(h => h.hid)), histPending = new Set(), histDel = new Set();
+S.rows.forEach(r => lastRows.set(r.id, canon(r)));
+const bump = (m, k, d) => m.set(k, (m.get(k) || 0) + d);
+function enqueue(fn, done){
+  queue = queue.then(fn).catch(onFail).then(done);
+}
+function onFail(err){
+  if (Date.now() - warnT > 5000){ warnT = Date.now(); toast(err && err.code === 'invalid_argument' ? 'ไม่มีสิทธิ์แก้ไข (ดูได้อย่างเดียว) — การแก้ไขของคุณไม่ถูกบันทึก' : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'); }
+  busy.clear(); delIds.clear(); histPending.clear(); histDel.clear(); metaBusy = 0;
+  if (lastSnaps.rows) applyRows(lastSnaps.rows); if (lastSnaps.meta) applyMeta(lastSnaps.meta); if (lastSnaps.hist) applyHist(lastSnaps.hist);
+  render();
+}
+function syncOut(){
+  if (!DB || !ready) return;
+  let maxN = S.rows.reduce((m, r) => Math.max(m, r.n || 0), 0);
+  const ids = new Set();
+  S.rows.forEach(r => {
+    ids.add(r.id);
+    if (r.n == null) r.n = ++maxN;
+    const c = canon(r);
+    if (lastRows.get(r.id) === c) return;
+    lastRows.set(r.id, c); bump(busy, r.id, 1);
+    enqueue(() => DB.doc('rows/' + r.id).set(JSON.parse(c)), () => bump(busy, r.id, -1));
+  });
+  [...lastRows.keys()].forEach(id => {
+    if (ids.has(id)) return;
+    lastRows.delete(id); delIds.add(id); bump(busy, id, 1);
+    enqueue(() => DB.doc('rows/' + id).delete(), () => { bump(busy, id, -1); if (!busy.get(id)) delIds.delete(id); });
+  });
+  const m = canon(metaOf());
+  if (m !== lastMeta){ lastMeta = m; metaBusy++; enqueue(() => DB.doc('meta/main').set(JSON.parse(m)), () => { metaBusy--; }); }
+  const fresh = S.history.filter(h => !h.hid).reverse(), t0 = Date.now();
+  fresh.forEach((h, i) => { h.hid = t0.toString(36) + i + Math.random().toString(36).slice(2, 6); h.seq = t0 + i; });
+  S.history.forEach(h => {
+    if (histSeen.has(h.hid)) return;
+    histSeen.add(h.hid); histPending.add(h.hid);
+    enqueue(() => DB.doc('history/' + h.hid).set(JSON.parse(canon(h))), () => histPending.delete(h.hid));
+  });
+  if (histReset){
+    histReset = false;
+    const keep = new Set(S.history.map(h => h.hid));
+    (lastSnaps.hist ? lastSnaps.hist.docs : []).forEach(d => { if (!keep.has(d.id)){ histDel.add(d.id); enqueue(() => DB.doc('history/' + d.id).delete(), () => histDel.delete(d.id)); } });
+  }
+}
+function applyRows(snap){
+  lastSnaps.rows = snap;
+  if (!ready && snap.empty) return;
+  const map = new Map();
+  snap.docs.forEach(d => { if (!delIds.has(d.id)) map.set(d.id, migrate({ ...d.data(), id: d.id })); });
+  S.rows.forEach(r => { if (busy.get(r.id) && !delIds.has(r.id)) map.set(r.id, r); });
+  S.rows = [...map.values()].sort((a, b) => (a.n ?? 1e9) - (b.n ?? 1e9));
+  map.forEach((r, id) => { if (!busy.get(id)) lastRows.set(id, canon(r)); });
+  [...lastRows.keys()].forEach(id => { if (!map.has(id) && !busy.get(id)) lastRows.delete(id); });
+  registerStatuses(S.rows.flatMap(r => [...parse(r.status), ...parse(r.prev)]));
+}
+function applyMeta(snap){
+  lastSnaps.meta = snap;
+  if (!snap.exists || metaBusy) return;
+  const d = snap.data();
+  S.prevLabel = d.prevLabel || S.prevLabel; S.curLabel = d.curLabel || S.curLabel;
+  S.statuses = [...new Set([...BASE_STATUSES, ...(d.statuses || [])])];
+}
+function applyHist(snap){
+  lastSnaps.hist = snap;
+  if (!ready && snap.empty) return;
+  const srv = new Set(snap.docs.map(d => d.id));
+  const loc = S.history.filter(h => histPending.has(h.hid) && !srv.has(h.hid));
+  S.history = loc.concat(snap.docs.filter(d => !histDel.has(d.id)).map(d => ({ ...d.data() })));
+}
+function onRemote(kind, fn){
+  return snap => {
+    fn(snap); got[kind] = true;
+    if (!ready && got.rows && got.meta && got.hist){ ready = true; $('sync').hidden = false; }
+    registerStatuses(S.rows.flatMap(r => [...parse(r.status), ...parse(r.prev)]));
+    if (!metaBusy) lastMeta = canon(metaOf());
+    render();
+  };
+}
+(async () => {
+  let db = null;
+  try { db = window.claude ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  if (!db) return;
+  DB = db;
+  const bad = e => { if (e && e.code === 'revoked') toast('หมดสิทธิ์เข้าถึงข้อมูลที่แชร์'); };
+  db.collection('rows').onSnapshot(onRemote('rows', applyRows), bad);
+  db.doc('meta/main').onSnapshot(onRemote('meta', applyMeta), bad);
+  db.collection('history').orderBy('seq', 'desc').limit(500).onSnapshot(onRemote('hist', applyHist), bad);
+})();
+
+function registerStatuses(list){ list.forEach(t => { if (t && !S.statuses.includes(t)) S.statuses.push(t); }); }
+function markDirty(){ S.dirty = true; $('dirty').hidden = false; }
+
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+/* ---------- filtering / sorting ---------- */
+function visibleRows(){
+  const q = F.q.trim().toLowerCase();
+  let a = S.rows.filter(r => {
+    if (q && !`${r.group} ${r.code} ${r.desc} ${r.note} ${r.defectNo}`.toLowerCase().includes(q)) return false;
+    if (F.group && r.group !== F.group) return false;
+    if (F.owner && (r.owner || '') !== (F.owner === '__none' ? '' : F.owner)) return false;
+    if (F.status){
+      const t = parse(r.status);
+      if (F.status === '__none'){ if (t.length) return false; }
+      else if (!t.includes(F.status)) return false;
+    }
+    for (const k of ['scr01','base','textrep']){
+      if (F[k] === '1' && !r[k]) return false;
+      if (F[k] === '0' && r[k]) return false;
+    }
+    if (F.defect === '1' && !r.defectNo && !r.defectUrl) return false;
+    if (F.defect === '0' && (r.defectNo || r.defectUrl)) return false;
+    if (F.priority){ if (F.priority === '__none'){ if (r.priority) return false; } else if (r.priority !== F.priority) return false; }
+    if (F.changed && r.status === r.prev) return false;
+    return true;
+  });
+  if (sortKey){
+    a = [...a].sort((x, y) => String(x[sortKey] || '').localeCompare(String(y[sortKey] || ''), 'th', {numeric:true}) * sortDir);
+  }
+  return a;
+}
+
+/* ---------- rendering ---------- */
+const selCache = {};
+function fillSelect(el, items, allLabel, extra){
+  const key = JSON.stringify([items, allLabel, extra]);
+  if (selCache[el.id] === key) return;
+  selCache[el.id] = key;
+  const cur = el.value;
+  el.innerHTML = `<option value="">${esc(allLabel)}</option>` + items.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('') + (extra ? `<option value="__none">${esc(extra)}</option>` : '');
+  el.value = [...el.options].some(o => o.value === cur) ? cur : '';
+}
+function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
+
+function yn(v){
+  v = (v || '').trim(); if (!v) return '';
+  const c = v === 'y' ? 'y' : v === 'n' ? 'n' : 'o';
+  return `<span class="yn ${c}">${esc(v)}</span>`;
+}
+
+function rowHTML(r){
+  const cur = parse(r.status);
+  const changed = r.status !== r.prev;
+  return `<tr data-id="${r.id}" class="${selected.has(r.id) ? 'sel' : ''}">
+    <td class="c-sel"><input type="checkbox" class="rowsel" ${selected.has(r.id) ? 'checked' : ''} aria-label="เลือก ${esc(r.code)}"></td>
+    <td>${esc(r.group)}</td>
+    <td class="code">${esc(r.code)}</td>
+    <td class="desc">${esc(r.desc)}</td>
+    <td class="prev">${chips(parse(r.prev))}</td>
+    <td><button class="stbtn" title="เปลี่ยนสถานะ">${cur.length ? chips(cur) : '<span class="none">+ ตั้งสถานะ</span>'}${changed ? '<span class="chg" title="เปลี่ยนจากรอบก่อน"></span>' : ''}</button></td>
+    <td><select class="prio ${r.priority ? 'p' + r.priority : ''}" aria-label="Priority ${esc(r.code)}"><option value="">–</option><option value="1" ${r.priority==='1'?'selected':''}>1</option><option value="2" ${r.priority==='2'?'selected':''}>2</option><option value="3" ${r.priority==='3'?'selected':''}>3</option></select></td>
+    <td class="fl"><input type="checkbox" class="flag" data-f="scr01" ${r.scr01 ? 'checked' : ''} aria-label="SCR01 ${esc(r.code)}"></td>
+    <td class="fl"><input type="checkbox" class="flag" data-f="base" ${r.base ? 'checked' : ''} aria-label="Base ${esc(r.code)}"></td>
+    <td class="fl"><input type="checkbox" class="flag" data-f="textrep" ${r.textrep ? 'checked' : ''} aria-label="Textrep ${esc(r.code)}"></td>
+    <td>${esc(r.owner)}</td>
+    <td class="defect">${defectCell(r)}</td>
+    <td class="note">${esc(r.note)}</td>
+    <td class="upd">${esc(fmtTs(r.updated))}</td>
+  </tr>`;
+}
+
+const CANCEL = 'ยกเลิกใช้ตัวใหม่';
+const sumRows = () => S.rows.filter(r => !parse(r.status).includes(CANCEL));
+function renderSummary(){
+  const skipped = S.rows.length - sumRows().length;
+  $('sumNote').textContent = skipped ? `(ไม่นับ “${CANCEL}” ${skipped} รายการ)` : '';
+  const cnt = {}, pcnt = {};
+  const ob = {};
+  const toks = str => { const t = parse(str); return t.length ? t : ['']; };
+  sumRows().forEach(r => {
+    const o = (r.owner || '').trim() || 'ไม่มี Owner';
+    toks(r.status).forEach(a => { cnt[a] = (cnt[a] || 0) + 1; (ob[a] = ob[a] || {})[o] = (ob[a][o] || 0) + 1; });
+    toks(r.prev).forEach(b => { pcnt[b] = (pcnt[b] || 0) + 1; });
+  });
+  const obTxt = n => Object.entries(ob[n] || {}).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${esc(k)} ${v}`).join(' · ');
+  const names = [...S.statuses, ''];
+  [...Object.keys(cnt), ...Object.keys(pcnt)].forEach(n => { if (!names.includes(n)) names.push(n); });
+  const label = n => n || 'ยังไม่มีสถานะ';
+  const key = n => n || '__none';
+  $('bar').innerHTML = names.filter(n => cnt[n]).map(n =>
+    `<button class="seg" data-k="${kind(n)}" data-st="${esc(key(n))}" style="flex:${cnt[n]}" title="${esc(label(n))}: ${cnt[n]}" aria-label="${esc(label(n))} ${cnt[n]} รายการ"></button>`).join('');
+  $('legend').innerHTML = names.filter(n => cnt[n] || pcnt[n]).map(n => {
+    const d = (cnt[n] || 0) - (pcnt[n] || 0);
+    const delta = d ? `<small>${d > 0 ? '+' : '−'}${Math.abs(d)} จากรอบก่อน</small>` : '';
+    return `<button class="lg ${F.status === key(n) ? 'on' : ''}" data-k="${kind(n)}" data-st="${esc(key(n))}"><i></i><b>${cnt[n] || 0}</b><span>${esc(label(n))}</span>${delta}${cnt[n] ? `<small class="brk">${obTxt(n)}</small>` : ''}</button>`;
+  }).join('');
+}
+
+function render(){
+  fillSelect($('fGroup'), uniq(S.rows.map(r => r.group)), 'Group: ทั้งหมด');
+  fillSelect($('fStatus'), S.statuses, 'สถานะ: ทั้งหมด', '(ยังไม่มีสถานะ)');
+  fillSelect($('fOwner'), uniq(S.rows.map(r => r.owner)), 'Owner: ทั้งหมด', '(ไม่มี Owner)');
+  $('dl-group').innerHTML = uniq(S.rows.map(r => r.group)).map(v => `<option value="${esc(v)}">`).join('');
+  $('dl-owner').innerHTML = uniq(S.rows.map(r => r.owner).concat(['SI IT','IT1'])).map(v => `<option value="${esc(v)}">`).join('');
+  $('dl-status').innerHTML = S.statuses.map(v => `<option value="${esc(v)}">`).join('');
+
+  $('thPrev').innerHTML = `${esc(S.prevLabel)} <button class="btn tiny ren" data-w="prev" title="แก้วันที่" aria-label="แก้วันที่ Status รอบก่อน">✎</button>`;
+  $('thCur').innerHTML = `${esc(S.curLabel)} <button class="btn tiny ren" data-w="cur" title="แก้วันที่" aria-label="แก้วันที่ Status รอบปัจจุบัน">✎</button>`;
+  document.querySelectorAll('thead th[data-sort]').forEach(th => th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none'));
+
+  const v = visibleRows();
+  $('tbody').innerHTML = v.map(rowHTML).join('');
+  $('empty').hidden = v.length > 0;
+  $('count').textContent = `แสดง ${v.length} จาก ${S.rows.length} รายการ`;
+  $('sub').textContent = `${S.rows.length} แบบฟอร์ม · ${uniq(S.rows.map(r => r.group)).length} กลุ่ม · เทียบ “${S.prevLabel.replace(/^Status\s*/i,'')}” กับ “${S.curLabel.replace(/^Status\s*/i,'')}”`;
+  $('selAll').checked = v.length > 0 && v.every(r => selected.has(r.id));
+  renderSummary();
+  updateBulk();
+  syncOut();
+  persist();
+}
+function updateBulk(){
+  [...selected].forEach(id => { if (!S.rows.some(r => r.id === id)) selected.delete(id); });
+  $('bulk').hidden = selected.size === 0;
+  $('bulkN').textContent = `เลือกอยู่ ${selected.size} รายการ`;
+}
+
+/* ---------- status change ---------- */
+function commitStatus(r, tokens){
+  registerStatuses(tokens);
+  const nv = tokens.join(', ');
+  if (nv === r.status) return false;
+  S.history.unshift({ ts: nowStr(), type: 'status', rid: r.id, code: r.code, desc: r.desc, from: r.status, to: nv });
+  r.status = nv; r.updated = nowStr(); markDirty();
+  return true;
+}
+
+/* ---------- popover + picker ---------- */
+let popEl = null;
+function closePop(){ if (popEl){ popEl.remove(); popEl = null; } document.removeEventListener('mousedown', outside); }
+function outside(e){ if (popEl && !popEl.contains(e.target)) closePop(); }
+function showPop(anchor, content){
+  closePop();
+  popEl = document.createElement('div'); popEl.className = 'pop';
+  popEl.appendChild(content); document.body.appendChild(popEl);
+  const a = anchor.getBoundingClientRect(), w = popEl.offsetWidth, h = popEl.offsetHeight;
+  let x = Math.max(8, Math.min(a.left, innerWidth - w - 8));
+  let y = a.bottom + 6; if (y + h > innerHeight - 8) y = Math.max(8, a.top - h - 6);
+  popEl.style.left = x + 'px'; popEl.style.top = y + 'px';
+  setTimeout(() => document.addEventListener('mousedown', outside), 0);
+}
+
+function makePicker(initial){
+  const wrap = document.createElement('div');
+  const list = [...S.statuses]; initial.forEach(t => { if (!list.includes(t)) list.push(t); });
+  const sel = new Set(initial);
+  const box = document.createElement('div'); box.className = 'pk-list';
+  const add = document.createElement('div'); add.className = 'pk-add';
+  add.innerHTML = '<input type="text" placeholder="เพิ่มสถานะใหม่…" aria-label="เพิ่มสถานะใหม่"><button type="button" class="btn">เพิ่ม</button>';
+  const inp = add.querySelector('input');
+  function draw(){
+    box.innerHTML = '';
+    list.forEach(name => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = 'chip pk' + (sel.has(name) ? ' on' : ''); b.dataset.k = kind(name);
+      b.setAttribute('aria-pressed', sel.has(name)); b.textContent = name;
+      b.onclick = () => { sel.has(name) ? sel.delete(name) : sel.add(name); draw(); };
+      box.appendChild(b);
+    });
+  }
+  function addNew(){ const n = inp.value.replace(/,/g, ' ').trim(); if (!n) return; if (!list.includes(n)) list.push(n); sel.add(n); inp.value = ''; draw(); }
+  add.querySelector('button').onclick = addNew;
+  inp.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); addNew(); } };
+  draw(); wrap.append(box, add);
+  return { el: wrap, get: () => list.filter(n => sel.has(n)) };
+}
+
+function statusPopover(anchor, title, initial, onApply){
+  const picker = makePicker(initial);
+  const c = document.createElement('div');
+  const h = document.createElement('h3'); h.textContent = title;
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = '<button type="button" class="btn">ยกเลิก</button><button type="button" class="btn primary">ตกลง</button>';
+  row.children[0].onclick = closePop;
+  row.children[1].onclick = () => { onApply(picker.get()); closePop(); };
+  c.append(h, picker.el, row);
+  showPop(anchor, c);
+}
+
+/* ---------- dialogs (มี fallback สำหรับเบราว์เซอร์ที่ไม่รองรับ <dialog>) ---------- */
+function openDlg(d){
+  if (typeof d.showModal === 'function'){ try { openDlg(d); return; } catch (e) {} }
+  d.setAttribute('open', ''); d.classList.add('fallback');
+}
+function closeDlg(d){
+  if (d.classList.contains('fallback')){ d.removeAttribute('open'); d.classList.remove('fallback'); return; }
+  if (typeof d.close === 'function' && d.open){ try { closeDlg(d); return; } catch (e) {} }
+  d.removeAttribute('open');
+}
+window.addEventListener('error', e => toast('เกิดข้อผิดพลาด: ' + (e.message || 'unknown')));
+function askText(title, label, value){
+  return new Promise(res => {
+    const d = $('dlgText'), inp = $('dlgTextInput');
+    $('dlgTextTitle').textContent = title; $('dlgTextLabel').textContent = label; inp.value = value || '';
+    $('dlgTextOk').onclick = () => { closeDlg(d); res(inp.value.trim()); };
+    $('dlgTextCancel').onclick = () => { closeDlg(d); res(null); };
+    d.oncancel = () => res(null);
+    inp.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); $('dlgTextOk').click(); } };
+    openDlg(d); inp.focus(); inp.select();
+  });
+}
+function parseLabelDates(l){
+  const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*[-–]\s*(\d{1,2})\/(\d{1,2})\/(\d{4}))?/.exec(l || '');
+  const iso = (d, mo, y) => `${y}-${p2(mo)}-${p2(d)}`;
+  return m ? { from: iso(m[1], m[2], m[3]), to: m[4] ? iso(m[4], m[5], m[6]) : '' } : { from: '', to: '' };
+}
+function labelFromDates(prefix, from, to){
+  const f = s => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+  return (prefix + ' ' + (from ? f(from) : '') + (from && to && to !== from ? '-' + f(to) : '')).trim();
+}
+function askDates(title, label){
+  return new Promise(res => {
+    const d = $('dlgDate'), nm = $('dlgDName'), a = $('dlgDFrom'), b = $('dlgDTo');
+    const prefix = (label.replace(/\s*\d{1,2}\/\d{1,2}\/\d{4}.*$/, '').trim()) || 'Status';
+    const cur = parseLabelDates(label);
+    $('dlgDTitle').textContent = title; nm.value = label; a.value = cur.from; b.value = cur.to; $('dlgDErr').textContent = '';
+    const sync = () => { if (a.value) nm.value = labelFromDates(prefix, a.value, b.value); };
+    a.placeholder = b.placeholder = 'YYYY-MM-DD';
+    a.oninput = b.oninput = sync;
+    $('dlgDOk').onclick = () => {
+      const bad = v => v && !/^\d{4}-\d{2}-\d{2}$/.test(v);
+      if (bad(a.value) || bad(b.value)){ $('dlgDErr').textContent = 'รูปแบบวันที่ต้องเป็น YYYY-MM-DD'; return; }
+      if (a.value && b.value && b.value < a.value){ $('dlgDErr').textContent = 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม'; return; }
+      if (!nm.value.trim()){ $('dlgDErr').textContent = 'กรอกชื่อคอลัมน์'; return; }
+      closeDlg(d); res(nm.value.trim());
+    };
+    $('dlgDCancel').onclick = () => { closeDlg(d); res(null); };
+    d.oncancel = () => res(null);
+    openDlg(d); a.focus();
+  });
+}
+function askConfirm(title, msg, ok){
+  return new Promise(res => {
+    const d = $('dlgConfirm');
+    $('dlgConfirmTitle').textContent = title; $('dlgConfirmMsg').textContent = msg; $('dlgConfirmOk').textContent = ok || 'ตกลง';
+    $('dlgConfirmOk').onclick = () => { closeDlg(d); res(true); };
+    $('dlgConfirmCancel').onclick = () => { closeDlg(d); res(false); };
+    d.oncancel = () => res(false);
+    openDlg(d);
+  });
+}
+
+/* ---------- drawer ---------- */
+let editingId = null;
+function histLine(h){
+  if (h.type === 'created') return `<span>เพิ่มรายการใหม่</span>${chips(parse(h.to))}`;
+  if (h.type === 'deleted') return `<span>ลบรายการ</span>`;
+  if (h.type === 'round') return `<span>เริ่มรอบใหม่: ${esc(h.to)}</span>`;
+  return `${h.from ? chips(parse(h.from)) : '<span>(ว่าง)</span>'}<span>→</span>${h.to ? chips(parse(h.to)) : '<span>(ว่าง)</span>'}`;
+}
+let drawerPicker = null;
+function openDrawer(id){
+  closePop();
+  editingId = id;
+  const r = id ? S.rows.find(x => x.id === id) : { group:'', code:'', desc:'', prev:'', status:'', priority:'', scr01:'', base:'', textrep:'', owner:'', defectNo:'', defectUrl:'', note:'' };
+  $('dTitle').textContent = id ? `${r.code || 'แก้ไขรายการ'}` : 'เพิ่มรายการใหม่';
+  $('f-group').value = r.group; $('f-code').value = r.code; $('f-desc').value = r.desc;
+  $('f-prev').value = r.prev; $('f-scr01').checked = !!r.scr01; $('f-base').checked = !!r.base; $('f-textrep').checked = !!r.textrep; $('f-priority').value = r.priority || '';
+  $('f-owner').value = r.owner; $('f-defno').value = r.defectNo || ''; $('f-defurl').value = r.defectUrl || ''; $('f-note').value = r.note;
+  drawerPicker = makePicker(parse(r.status));
+  $('f-status').innerHTML = ''; $('f-status').appendChild(drawerPicker.el);
+  const hs = id ? S.history.filter(h => h.rid === id).slice(0, 8) : [];
+  $('f-hist').innerHTML = hs.length ? `<h4>ประวัติของรายการนี้</h4>` + hs.map(h => `<div class="h"><span>${esc(fmtTs(h.ts))}</span>${histLine(h)}</div>`).join('') : '';
+  $('dDelete').hidden = !id;
+  $('scrim').hidden = false; $('drawer').hidden = false;
+  $('f-code').focus();
+}
+function closeDrawer(){ $('drawer').hidden = true; $('scrim').hidden = true; editingId = null; }
+
+function saveDrawer(){
+  const v = {
+    group: $('f-group').value.trim(), code: $('f-code').value.trim(), desc: $('f-desc').value.trim(),
+    prev: $('f-prev').value.trim(), scr01: $('f-scr01').checked ? '1' : '', base: $('f-base').checked ? '1' : '', textrep: $('f-textrep').checked ? '1' : '', priority: $('f-priority').value,
+    owner: $('f-owner').value.trim(), defectNo: $('f-defno').value.trim(), defectUrl: $('f-defurl').value.trim(), note: $('f-note').value.trim()
+  };
+  const tokens = drawerPicker.get();
+  const nu = normUrl(v.defectUrl);
+  if (nu === null){ toast('URL ไม่ถูกต้อง ต้องขึ้นต้นด้วย http:// หรือ https://'); $('f-defurl').focus(); return; }
+  v.defectUrl = nu;
+  if (!v.code && !v.desc){ toast('กรอก Code หรือ Description อย่างน้อยหนึ่งช่อง'); $('f-code').focus(); return; }
+  if (!editingId){
+    const r = { id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ...v, status: '', updated: nowStr() };
+    registerStatuses(tokens); r.status = tokens.join(', ');
+    S.rows.push(r);
+    S.history.unshift({ ts: nowStr(), type: 'created', rid: r.id, code: r.code, desc: r.desc, from: '', to: r.status });
+    markDirty(); toast(`เพิ่ม ${r.code || r.desc} แล้ว`);
+  } else {
+    const r = S.rows.find(x => x.id === editingId);
+    const changed = Object.keys(v).some(k => (r[k] || '') !== v[k]);
+    Object.assign(r, v);
+    if (changed){ r.updated = nowStr(); markDirty(); }
+    commitStatus(r, tokens);
+    toast('บันทึกแล้ว');
+  }
+  closeDrawer(); render();
+}
+async function deleteDrawer(){
+  const r = S.rows.find(x => x.id === editingId); if (!r) return;
+  if (!await askConfirm('ลบรายการนี้?', `${r.code} · ${r.desc}`, 'ลบรายการ')) return;
+  S.history.unshift({ ts: nowStr(), type: 'deleted', rid: r.id, code: r.code, desc: r.desc, from: r.status, to: '' });
+  S.rows = S.rows.filter(x => x.id !== r.id); selected.delete(r.id); markDirty();
+  closeDrawer(); render(); toast('ลบแล้ว');
+}
+
+/* ---------- history dialog ---------- */
+function renderHist(){
+  const q = $('histQ').value.trim().toLowerCase();
+  const items = S.history.filter(h => !q || `${h.code} ${h.desc} ${h.from} ${h.to}`.toLowerCase().includes(q)).slice(0, 500);
+  $('histBody').innerHTML = items.length
+    ? `<table><thead><tr><th>เวลา</th><th>Code</th><th>Description</th><th>การเปลี่ยนแปลง</th></tr></thead><tbody>` +
+      items.map(h => `<tr><td class="upd">${esc(fmtTs(h.ts))}</td><td class="code">${esc(h.code)}</td><td>${esc(h.desc)}</td><td>${histLine(h)}</td></tr>`).join('') + `</tbody></table>`
+    : `<div class="empty">ยังไม่มีประวัติ — เมื่อเปลี่ยนสถานะ จะบันทึกไว้ที่นี่และออกไปอยู่ในชีต History ตอน Export</div>`;
+}
+
+/* ---------- export / import ---------- */
+async function exportXlsx(scope){
+  const rows = scope === 'filtered' ? visibleRows() : S.rows;
+  const head = ['Group','Code','Desc',S.prevLabel,S.curLabel,'Priority','SCR01 y/n','Base y/n','Textrepต้องทำ y/n','Owner','UAT Defect no.','UAT Defect URL','Note','Updated'];
+  const aoa = [head, ...rows.map(r => [r.group, r.code, r.desc, r.prev, r.status, r.priority ? Number(r.priority) : '', r.scr01 ? 'y' : 'n', r.base ? 'y' : 'n', r.textrep ? 'y' : 'n', r.owner, r.defectNo, r.defectUrl, r.note, r.updated])];
+  if (typeof XLSX === 'undefined'){
+    const q = v => { v = String(v ?? ''); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const csv = '﻿' + aoa.map(r => r.map(q).join(',')).join('\r\n');
+    const dd = new Date(), name = `SiIT_QN_status_log_${dd.getFullYear()}${p2(dd.getMonth()+1)}${p2(dd.getDate())}.csv`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast(`โหลด xlsx ไม่ได้ จึง Export เป็น CSV ${rows.length} รายการแทน (ไม่มีชีต History)`);
+    return;
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  rows.forEach((r, i) => { const u = normUrl(r.defectUrl); if (u){ const addr = XLSX.utils.encode_cell({ r: i + 1, c: 10 }); if (ws[addr]){ ws[addr].l = { Target: u }; } else { ws[addr] = { t: 's', v: 'เปิดลิงก์', l: { Target: u } }; ws[XLSX.utils.encode_cell({ r: i + 1, c: 11 })] = { t: 's', v: u }; } } });
+  ws['!cols'] = [{wch:14},{wch:12},{wch:52},{wch:26},{wch:30},{wch:9},{wch:12},{wch:12},{wch:16},{wch:9},{wch:14},{wch:36},{wch:30},{wch:17}];
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:aoa.length-1, c:head.length-1} }) };
+  const hh = [['เวลา','ประเภท','Code','Desc','จาก','เป็น'], ...S.history.slice().reverse().map(h => [h.ts, h.type, h.code, h.desc, h.from, h.to])];
+  const ws2 = XLSX.utils.aoa_to_sheet(hh);
+  ws2['!cols'] = [{wch:17},{wch:10},{wch:12},{wch:48},{wch:28},{wch:28}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Status Log');
+  XLSX.utils.book_append_sheet(wb, ws2, 'History');
+  const d = new Date();
+  const fname = `SiIT_QN_status_log_${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}.xlsx`;
+  let dl = null; try { dl = window.claude ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (dl){ try { await dl.save({ filename: fname, data: XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) }); } catch (e) { if (!e || e.code !== 'declined') toast('บันทึกไฟล์ไม่สำเร็จ'); return; } }
+  else XLSX.writeFile(wb, fname);
+  if (scope !== 'filtered'){ S.dirty = false; $('dirty').hidden = true; persist(); }
+  toast(`Export ${rows.length} รายการแล้ว`);
+}
+
+async function doImport(file){
+  if (typeof XLSX === 'undefined'){ toast('โหลดไลบรารี xlsx ไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); return; }
+  let wb;
+  try { wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }); } catch (e){ toast('อ่านไฟล์ไม่ได้'); return; }
+  const name = wb.SheetNames.includes('Status Log') ? 'Status Log' : wb.SheetNames.includes('Update QN') ? 'Update QN' : wb.SheetNames[0];
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+  if (!aoa.length){ toast('ชีตว่าง'); return; }
+  const H = aoa[0].map(h => String(h).trim());
+  const idx = re => H.findIndex(h => re.test(h));
+  const iG = idx(/^group$/i), iC = idx(/^code$/i), iD = idx(/^desc/i);
+  const st = H.map((h, i) => /^status/i.test(h) ? i : -1).filter(i => i >= 0);
+  if (iC < 0 || iD < 0 || !st.length){ toast('ไม่พบหัวคอลัมน์ Code / Desc / Status ในชีต “' + name + '”'); return; }
+  const iPrev = st.length > 1 ? st[0] : -1, iCur = st[st.length - 1];
+  const iP = idx(/^priority/i), iF = idx(/ทำก่อน/), iS = idx(/scr01/i), iB = idx(/^base/i), iT = idx(/textrep/i), iO = idx(/^owner/i), iDN = idx(/^uat defect no/i), iDU = idx(/^uat defect url/i), iN = idx(/^note/i), iU = idx(/^updated/i);
+  const g = (r, i) => i < 0 ? '' : String(r[i] ?? '').trim();
+  const rows = []; let n = 1;
+  aoa.slice(1).forEach(r => {
+    if (!g(r, iC) && !g(r, iD)) return;
+    rows.push(migrate({ id: 'r' + (n++), group: g(r, iG), code: g(r, iC), desc: g(r, iD), prev: g(r, iPrev), status: g(r, iCur), first: g(r, iF), priority: g(r, iP), scr01: g(r, iS), base: g(r, iB), textrep: g(r, iT), owner: g(r, iO), defectNo: g(r, iDN), defectUrl: g(r, iDU), note: g(r, iN), updated: g(r, iU) }));
+  });
+  if (!await askConfirm('นำเข้าข้อมูล?', `พบ ${rows.length} รายการในชีต “${name}” ของไฟล์ ${file.name} — ข้อมูลที่มีอยู่ตอนนี้จะถูกแทนที่`, 'นำเข้า')) return;
+  S.rows = rows; nextId = n;
+  S.prevLabel = iPrev >= 0 ? H[iPrev] : 'Status รอบก่อน'; S.curLabel = H[iCur];
+  S.statuses = [...BASE_STATUSES]; registerStatuses(rows.flatMap(r => [...parse(r.status), ...parse(r.prev)]));
+  S.history = [];
+  if (wb.SheetNames.includes('History')){
+    const ha = XLSX.utils.sheet_to_json(wb.Sheets['History'], { header: 1, defval: '' }).slice(1);
+    ha.forEach(h => {
+      const code = String(h[2] ?? '').trim(), desc = String(h[3] ?? '').trim();
+      const row = rows.find(r => r.code === code && r.desc === desc);
+      S.history.unshift({ ts: String(h[0] ?? ''), type: String(h[1] || 'status'), rid: row ? row.id : null, code, desc, from: String(h[4] ?? ''), to: String(h[5] ?? '') });
+    });
+  }
+  selected.clear(); S.dirty = false; $('dirty').hidden = true; histReset = true;
+  render(); toast(`นำเข้า ${rows.length} รายการแล้ว`);
+}
+
+/* ---------- events ---------- */
+$('tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  const id = tr.dataset.id;
+  if (e.target.closest('.flag, select.prio, .defect a')) return;
+  const df = e.target.closest('.dfedit');
+  if (df){ defectPopover(df, S.rows.find(x => x.id === id)); return; }
+  const cb = e.target.closest('.rowsel');
+  if (cb){
+    cb.checked ? selected.add(id) : selected.delete(id);
+    tr.classList.toggle('sel', cb.checked); updateBulk();
+    $('selAll').checked = visibleRows().every(r => selected.has(r.id));
+    return;
+  }
+  const sb = e.target.closest('.stbtn');
+  if (sb){
+    const r = S.rows.find(x => x.id === id);
+    statusPopover(sb, `เปลี่ยนสถานะ · ${r.code}`, parse(r.status), toks => { if (commitStatus(r, toks)) toast(`${r.code}: อัปเดตสถานะแล้ว`); render(); });
+    return;
+  }
+  openDrawer(id);
+});
+$('tbody').addEventListener('change', e => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  const r = S.rows.find(x => x.id === tr.dataset.id); if (!r) return;
+  if (e.target.matches('.flag')){ r[e.target.dataset.f] = e.target.checked ? '1' : ''; }
+  else if (e.target.matches('select.prio')){ r.priority = e.target.value; }
+  else return;
+  r.updated = nowStr(); markDirty(); render();
+});
+$('selAll').addEventListener('change', e => {
+  visibleRows().forEach(r => e.target.checked ? selected.add(r.id) : selected.delete(r.id)); render();
+});
+document.querySelector('thead').addEventListener('click', e => {
+  const rb = e.target.closest('.ren'); if (rb){ e.stopPropagation(); try { editLabel(rb.dataset.w, rb); } catch (err) { toast('เปิดแก้วันที่ไม่ได้: ' + err.message); } return; }
+  const th = e.target.closest('th[data-sort]'); if (!th) return;
+  const k = th.dataset.sort;
+  if (sortKey !== k){ sortKey = k; sortDir = 1; } else if (sortDir === 1){ sortDir = -1; } else { sortKey = null; sortDir = 1; }
+  render();
+});
+function defectPopover(anchor, r){
+  const c = document.createElement('div');
+  c.innerHTML = `<h3>UAT Defect · ${esc(r.code)}</h3>
+    <label class="dl">Defect no.<input type="text" class="d-no" placeholder="เช่น 1234"></label>
+    <label class="dl" style="margin-top:10px">URL<input type="text" class="d-url" inputmode="url" placeholder="https://…"></label>
+    <div class="d-err"></div>
+    <div class="row"><button type="button" class="btn d-cancel">ยกเลิก</button><button type="button" class="btn primary d-ok">ตกลง</button></div>`;
+  const no = c.querySelector('.d-no'), url = c.querySelector('.d-url'), err = c.querySelector('.d-err');
+  no.value = r.defectNo || ''; url.value = r.defectUrl || '';
+  function ok(){
+    const u = normUrl(url.value);
+    if (u === null){ err.textContent = 'URL ไม่ถูกต้อง ต้องขึ้นต้นด้วย http:// หรือ https://'; return; }
+    closePop();
+    if (no.value.trim() !== (r.defectNo || '') || u !== (r.defectUrl || '')){
+      r.defectNo = no.value.trim(); r.defectUrl = u; r.updated = nowStr(); markDirty(); render(); toast('บันทึก Defect แล้ว');
+    }
+  }
+  c.querySelector('.d-ok').onclick = ok; c.querySelector('.d-cancel').onclick = closePop;
+  c.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); ok(); } });
+  showPop(anchor, c); no.focus();
+}
+function datePopover(anchor, title, label, onApply){
+  const prefix = (label.replace(/\s*\d{1,2}\/\d{1,2}\/\d{4}.*$/, '').trim()) || 'Status';
+  const cur = parseLabelDates(label);
+  const c = document.createElement('div');
+  c.innerHTML = `<h3>${esc(title)}</h3>
+    <div class="grid2"><label class="dl">วันที่<input type="date" class="d-from" placeholder="YYYY-MM-DD"></label>
+    <label class="dl">ถึงวันที่ (ถ้าเป็นช่วง)<input type="date" class="d-to" placeholder="YYYY-MM-DD"></label></div>
+    <label class="dl">ชื่อคอลัมน์ (ใช้เป็นหัวคอลัมน์ตอน Export)<input type="text" class="d-name"></label>
+    <div class="d-err"></div>
+    <div class="row"><button type="button" class="btn d-cancel">ยกเลิก</button><button type="button" class="btn primary d-ok">ตกลง</button></div>`;
+  const a = c.querySelector('.d-from'), b = c.querySelector('.d-to'), nm = c.querySelector('.d-name'), err = c.querySelector('.d-err');
+  a.value = cur.from; b.value = cur.to; nm.value = label;
+  const sync = () => { if (a.value) nm.value = labelFromDates(prefix, a.value, b.value); };
+  a.addEventListener('input', sync); b.addEventListener('input', sync); a.addEventListener('change', sync); b.addEventListener('change', sync);
+  function ok(){
+    const bad = v => v && !/^\d{4}-\d{2}-\d{2}$/.test(v);
+    if (bad(a.value) || bad(b.value)){ err.textContent = 'รูปแบบวันที่ต้องเป็น YYYY-MM-DD'; return; }
+    if (a.value && b.value && b.value < a.value){ err.textContent = 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม'; return; }
+    if (!nm.value.trim()){ err.textContent = 'กรอกชื่อคอลัมน์'; return; }
+    closePop(); onApply(nm.value.trim());
+  }
+  c.querySelector('.d-ok').onclick = ok; c.querySelector('.d-cancel').onclick = closePop;
+  c.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); ok(); } });
+  showPop(anchor, c); a.focus();
+}
+function editLabel(w, anchor){
+  const key = w === 'prev' ? 'prevLabel' : 'curLabel';
+  datePopover(anchor, w === 'prev' ? 'แก้วันที่ Status รอบก่อน' : 'แก้วันที่ Status รอบปัจจุบัน', S[key], v => {
+    if (v !== S[key]){ S[key] = v; markDirty(); render(); toast('แก้ไขวันที่แล้ว'); }
+  });
+}
+async function editLabelOld(w){
+  const key = w === 'prev' ? 'prevLabel' : 'curLabel';
+  try {
+    const v = await askDates(w === 'prev' ? 'แก้วันที่ Status รอบก่อน' : 'แก้วันที่ Status รอบปัจจุบัน', S[key]);
+    if (v && v !== S[key]){ S[key] = v; markDirty(); render(); toast('แก้ไขวันที่แล้ว'); }
+  } catch (err) { toast('เปิดหน้าต่างแก้วันที่ไม่ได้: ' + err.message); }
+}
+$('q').addEventListener('input', e => { F.q = e.target.value; render(); });
+$('fGroup').onchange = e => { F.group = e.target.value; render(); };
+$('fStatus').onchange = e => { F.status = e.target.value; render(); };
+$('fOwner').onchange = e => { F.owner = e.target.value; render(); };
+$('fTextrep').onchange = e => { F.textrep = e.target.value; render(); };
+$('fDefect').onchange = e => { F.defect = e.target.value; render(); };
+$('fScr01').onchange = e => { F.scr01 = e.target.value; render(); };
+$('fBase').onchange = e => { F.base = e.target.value; render(); };
+$('fPrio').onchange = e => { F.priority = e.target.value; render(); };
+$('fChanged').onchange = e => { F.changed = e.target.checked; render(); };
+$('btnReset').onclick = () => {
+  Object.assign(F, { q:'', group:'', status:'', owner:'', priority:'', defect:'', scr01:'', base:'', textrep:'', changed:false });
+  $('q').value = ''; ['fGroup','fStatus','fOwner','fPrio','fDefect','fScr01','fBase','fTextrep'].forEach(i => $(i).value = ''); $('fChanged').checked = false; render();
+};
+function summaryClick(e){
+  const b = e.target.closest('[data-st]'); if (!b) return;
+  F.status = F.status === b.dataset.st ? '' : b.dataset.st; $('fStatus').value = F.status; render();
+}
+$('bar').addEventListener('click', summaryClick); $('legend').addEventListener('click', summaryClick);
+
+$('btnAdd').onclick = () => openDrawer(null);
+$('dSave').onclick = saveDrawer; $('dCancel').onclick = closeDrawer; $('dClose').onclick = closeDrawer; $('scrim').onclick = closeDrawer;
+$('dDelete').onclick = deleteDrawer;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){
+    const fb = document.querySelector('dialog.fallback');
+    if (fb){ if (typeof fb.oncancel === 'function') fb.oncancel(); closeDlg(fb); return; }
+  }
+  if (e.key === 'Escape'){ if (popEl) closePop(); else if (!$('drawer').hidden) closeDrawer(); }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('drawer').hidden) saveDrawer();
+});
+
+$('bulkStatus').onclick = e => {
+  const ids = [...selected];
+  statusPopover(e.currentTarget, `ตั้งสถานะให้ ${ids.length} รายการ (แทนที่สถานะเดิม)`, [], toks => {
+    let n = 0; ids.forEach(id => { const r = S.rows.find(x => x.id === id); if (r && commitStatus(r, toks)) n++; });
+    render(); toast(`อัปเดต ${n} รายการ`);
+  });
+};
+$('bulkOwner').onclick = async () => {
+  const v = await askText('ตั้ง Owner', `ใช้กับ ${selected.size} รายการที่เลือก`, '');
+  if (v === null) return;
+  selected.forEach(id => { const r = S.rows.find(x => x.id === id); if (r){ r.owner = v; r.updated = nowStr(); } });
+  markDirty(); render(); toast('อัปเดต Owner แล้ว');
+};
+$('bulkPrio').onclick = e => {
+  const m = document.createElement('div'); m.className = 'menu';
+  m.innerHTML = ['1','2','3',''].map(v => `<button data-p="${v}">${v ? 'Priority ' + v : 'ล้าง Priority'}</button>`).join('');
+  m.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; closePop();
+    selected.forEach(id => { const r = S.rows.find(x => x.id === id); if (r){ r.priority = b.dataset.p; r.updated = nowStr(); } });
+    markDirty(); render(); toast('อัปเดต Priority แล้ว'); };
+  showPop(e.currentTarget, m);
+};
+$('bulkClear').onclick = () => { selected.clear(); render(); };
+
+$('btnHist').onclick = () => { $('histQ').value = ''; renderHist(); openDlg($('dlgHist')); };
+$('histQ').oninput = renderHist; $('histClose').onclick = () => closeDlg($('dlgHist'));
+$('btnRound').onclick = e => {
+  const td = new Date(), today = `${p2(td.getDate())}/${p2(td.getMonth()+1)}/${td.getFullYear()}`;
+  datePopover(e.currentTarget, 'เริ่มรอบใหม่ — เลือกวันที่ของรอบใหม่', 'Status ' + today, startRound);
+};
+function startRound(v){
+  S.rows.forEach(r => r.prev = r.status);
+  S.history.unshift({ ts: nowStr(), type: 'round', rid: null, code: '', desc: '', from: S.curLabel, to: v });
+  S.prevLabel = S.curLabel; S.curLabel = v; markDirty(); render(); toast('เริ่มรอบใหม่แล้ว');
+};
+$('btnImport').onclick = () => $('fileIn').click();
+$('fileIn').onchange = e => { const f = e.target.files[0]; if (f) doImport(f); e.target.value = ''; };
+$('btnExport').onclick = e => {
+  const m = document.createElement('div'); m.className = 'menu';
+  m.innerHTML = `<button data-s="all">ทั้งหมด (${S.rows.length} รายการ)</button><button data-s="filtered">เฉพาะที่กรองอยู่ (${visibleRows().length} รายการ)</button>`;
+  m.onclick = ev => { const b = ev.target.closest('button'); if (b){ closePop(); exportXlsx(b.dataset.s); } };
+  showPop(e.currentTarget, m);
+};
+
+render();
+</script>
+</body>
+</html>
